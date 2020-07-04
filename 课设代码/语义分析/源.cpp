@@ -17,6 +17,7 @@ struct symbol {  //符号表结构
 
 symbol SYNBL[1000];		//建立符号表
 token token_list[1000];  //建立token序列
+string data_type[3] = { "int","float","char" };//定义的数据类型
 string KT[50];
 string PT[50];
 string IT[1000];
@@ -26,6 +27,24 @@ bool Isdata_type(string word) {  //判断是否为数据类型
 		if (data_type[i] == word) return true;
 	}
 	return false;
+}
+
+/*string tokennum_to_T(int num){   //根据token序号返回token内容
+	switch (token_list[num].code) {
+	case 1:return KT[token_list[num].value];
+	case 2:return PT[token_list[num].value];
+	case 3:return IT[token_list[num].value];
+	default:return 0;
+	}
+}*/
+
+string token_to_T(token t) {  //根据token返回对应的单词
+	switch (t.code) {
+	case 1:return KT[t.value-1];
+	case 2:return PT[t.value-1];
+	case 3:return IT[t.value-1];
+	default:return "error";
+	}
 }
 
 int state_tran(int state, int num) {  //扫描token填写符号表的状态转换函数
@@ -42,7 +61,7 @@ int state_tran(int state, int num) {  //扫描token填写符号表的状态转换函数
 		}
 		else return 0;
 	}
-	case 2: {
+	case 2: {  
 		if (token_to_T(token_list[num]) == ",") {//读入逗号，返回状态1，准备读同类型的下一个标识符
 			return 1;
 		}
@@ -61,13 +80,13 @@ int state_tran(int state, int num) {  //扫描token填写符号表的状态转换函数
 	}
 }
 
-void token_sacnning(int tline, int sline) {  //token扫描器，填写符号表
+void token_sacnning(int tline,int sline) {  //token扫描器，填写符号表
 	token last_data_type;  //临时储存关键token信息
 	string last_symbol_name;   //记录上一个读取的标识符
 	int offset = 0;		//记录域宽
 	int state = 0;		//状态
 	int last_state = 0; //前一个状态
-	int lookup[6][6] = { 1,0,2,3,0,0,
+	int lookup[6][6] = {1,0,2,3,0,0,
 						4,0,2,0,0,0,
 						0,5,0,0,0,0,
 						0,0,1,0,0,0,
@@ -76,9 +95,9 @@ void token_sacnning(int tline, int sline) {  //token扫描器，填写符号表
 	int i = 0;  //token行数
 	while (i < tline) {   //逐一读取token
 		last_state = state;
-		state = state_tran(state, i);  //状态转换
+		state = state_tran(state,i);  //状态转换
 		switch (lookup[state][last_state]) {
-		case 0: {
+		case 0: {  
 			cout << "err!" << endl;
 			break;
 		}
@@ -149,11 +168,15 @@ int main() {
 	ifstream symbolfile;   //打开符号表文件
 	symbolfile.open("测试符号表（词法）.txt");
 	int SYNBL_line = 0;
-	while (symbolfile.eof() == 0) {//从文件中读入符号表信息
+	while (symbolfile.eof()==0) {//从文件中读入符号表信息
 		symbolfile >> SYNBL[SYNBL_line].name >> SYNBL[SYNBL_line].type >> SYNBL[SYNBL_line].cat >> SYNBL[SYNBL_line].addr;
 		SYNBL_line++;
 	}
 	symbolfile.close();
+	/*cout << "填写符号表前:" << endl;
+	for (int i = 0; i < SYNBL_line; i++) {
+		cout << SYNBL[i].name << "	" << SYNBL[i].type << "	" << SYNBL[i].cat << "	" << SYNBL[i].addr << endl;
+	}*/
 
 	ifstream tokenfile;  //打开token序列文件
 	tokenfile.open("测试token.txt");
@@ -163,7 +186,10 @@ int main() {
 		token_line++;
 	}
 	tokenfile.close();
-
+	/*for (int i = 0; i < token_line; i++){
+		cout << token_list[i].code << "	" << token_list[i].value << endl;
+	}*/
+	
 	ifstream KTfile;
 	KTfile.open("测试1关键字表.txt");
 	int KT_line = 0;
@@ -172,7 +198,10 @@ int main() {
 		KT_line++;
 	}
 	KTfile.close();
-
+	/*for (int i = 0; i < KT_line; i++) {
+		cout << KT[i] << endl;
+	}*/
+	
 	ifstream PTfile;
 	PTfile.open("测试2界符表.txt");
 	int PT_line = 0;
@@ -181,6 +210,9 @@ int main() {
 		PT_line++;
 	}
 	PTfile.close();
+	/*for (int i = 0; i < PT_line; i++) {
+		cout << PT[i] << endl;
+	}*/
 
 	ifstream ITfile;
 	ITfile.open("测试3标识符表.txt");
@@ -190,6 +222,21 @@ int main() {
 		IT_line++;
 	}
 	ITfile.close();
+	/*for (int i = 0; i < IT_line; i++) {
+		cout << IT[i] << endl;
+	}*/
+
+	cout << "填写符号表前:" << endl;
+	cout << "name" << "	" << "type" << "	" << "cat" << "	" << "addr" << endl;
+	for (int i = 0; i < SYNBL_line; i++) {
+		cout << SYNBL[i].name << "	" << SYNBL[i].type << "	" << SYNBL[i].cat << "	" << SYNBL[i].addr << endl;
+	}
+	token_sacnning(token_line, SYNBL_line);
+	cout << "填写符号表后:" << endl;
+	for (int i = 0; i < SYNBL_line; i++) {
+		cout << SYNBL[i].name << "	" << SYNBL[i].type << "	" << SYNBL[i].cat << "	" << SYNBL[i].addr << endl;
+	}
+	cout << "type:1(int),2(char)，3(floar)" << endl << "cat:1(变量),2(函数)" << endl;
 
 	system("pause");
 	return 0;
