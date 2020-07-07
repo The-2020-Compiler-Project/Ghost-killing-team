@@ -2,5 +2,4 @@ main
 a
 b
 c
-str
-f
+
