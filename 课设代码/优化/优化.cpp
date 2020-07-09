@@ -1,31 +1,14 @@
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-#include <string>
-#include <sstream>
+#include "head.h"
 using namespace std;
 
 //字母与单引号表
 char ch[] = { 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
 			  'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','\'' };
 
-//DAG节点
-struct node
-{
-	int isnum = 0;				//是否为数字
-	string operation = "_";		//运算符号
-	float MainSymbolnum = -1;	//数字标记符
-	string Symbol[10];			//标记符，Simbol[0]为主标记符
-	int s = 0;					//标记符数量
-	node* LeftChild = NULL;		//左孩子
-	node* RightChild = NULL;	//右孩子
-};
-
 string quaternion[100][4];	//四元式数组
 int p = 0;					//四元式数组指针
 node dag[100];				//DAG图节点数组
 int q = 0;					//DAG图节点数组指针
-
 string ta[100][3];			//读入符号表时将其填入此数组
 int addr2[100];				//符号表中的第四位为地址，用int型可以易于增减
 int t = 0;
@@ -228,7 +211,12 @@ void coutquaternion()
 		if ((dag[i].operation == "_") && (dag[i].s > 1))
 		{
 			for (int j = 1; j < dag[i].s; j++)
-				ofile << "=" << "	" << dag[i].Symbol[0] << "	" << "_" << "	" << dag[i].Symbol[j] << endl;
+			{
+				int va;
+				va = value(dag[i].Symbol[j]);
+				if(va==1)
+					ofile << "=" << "	" << dag[i].Symbol[0] << "	" << "_" << "	" << dag[i].Symbol[j] << endl;
+			}	
 		}
 		if (dag[i].operation != "_")
 		{
@@ -277,8 +265,8 @@ void savetable()
 	while (1)
 	{
 		ifile >> ta[t][0] >> ta[t][1] >> ta[t][2] >> addr2[t];
-		t++;
 		if (ifile.eof() != 0)break;						//文件结束时跳出
+		t++;
 	}
 	ifile.close();
 	string da[100][4];									//读入优化后的四元式用来查看保留下来的中间变量tn
@@ -287,8 +275,8 @@ void savetable()
 	while (1)
 	{
 		ifile >> da[dd][0] >> da[dd][1] >> da[dd][2] >> da[dd][3];
-		dd++;
 		if (ifile.eof() != 0)break;
+		dd++;
 	}
 	ifile.close();
 	string hh[25];									//用来存储已经加入过的tn
@@ -382,15 +370,15 @@ void savetable()
 	ofile.close();
 }
 
-int main()
+void youhua()
 {
 	ifstream ifile;				//打开文件
 	ifile.open("中间代码_优化前.txt");
 	while (1)					//读入四元式
 	{
 		ifile >> quaternion[p][0] >> quaternion[p][1] >> quaternion[p][2] >> quaternion[p][3];
-		p++;
 		if (ifile.eof() != 0)break;						//文件结束时跳出
+		p++;
 	}
 	ifile.close();
 	for (int d = 0; d < p; d++)							//顺序读入四元式数组
@@ -407,5 +395,4 @@ int main()
 	}
 	coutquaternion();
 	savetable();
-	return 0;
 }
