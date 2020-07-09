@@ -1,36 +1,69 @@
-#include <iostream>
-#include <fstream>
-#include <string>
+#include "head.h"
 using namespace std;
 
 struct token {  //token结构体
 	int code;  //token的类别编号，1关键字，2界符，3标识符，4字符，5常数
 	int value; //token的值
+	int line; //token的行数
 };
-
 struct symbol {  //符号表结构
 	string name;
 	int type;
 	int cat;
 	int addr;
 };
+struct four {
+	string op;
+	string arg1;
+	string arg2;
+	string result;
+};
 
 symbol SYNBL[1000];		//建立符号表
+int SYNBL_line1 = 0;
 token token_list[1000];  //建立token序列
 string KT[50];
 string PT[50];
 string IT[1000];
 string CH[1000];
 string CT[1000];
-
 string data_type[3] = { "int","float","char" };//定义的数据类型
+
+bool Isdata_type(string word);
+string token_to_T(token t);
+string token_to_T(token t);
+int state_tran(int state, int num);
+void token_to_SYNBL(int tline, int sline);
+void FUNC();			//主函数体
+void PARA();			//形参定义
+void EXTRA_PARA();		//额外形参
+void STATEMENT_LIST();	//语句列表
+void STATEMENT_LIST1();	//语句列表'
+void STATEMENT();		//语句
+void DEF_STATEMENT();	//定义语句
+void EXTRA_ID();		//额外标识符
+void ASSI_STATEMENT();	//赋值语句
+void ASSI_CONTENT();	//赋值内容
+void EXPRESSION();		//表达式
+void EXPRESSION1();		//表达式'
+void T();				//表达式衍生非终结符T
+void T1();				//表达式衍生非终结符T1
+void F();				//表达式衍生非终结符F
+void PUSH(string str);	//入语义栈
+string POP();
+string NEWT();
+void ASSI();			//生成赋值四元式
+void GEQ(string str);	//生成表达式四元式
+
 bool Isdata_type(string word) {  //判断是否为数据类型
 	for (int i = 0; i < 3; i++) {
 		if (data_type[i] == word) return true;
 	}
 	return false;
 }
-
+void COUTERROR(int num) {	//输出错误信息
+	cout << "ERROR: \"" << token_to_T(token_list[num]) << "\"		行数: " << token_list[num].line << endl; 
+}
 
 /*string tokennum_to_T(int num){   //根据token序号返回token内容
 	switch (token_list[num].code) {
@@ -40,7 +73,6 @@ bool Isdata_type(string word) {  //判断是否为数据类型
 	default:return 0;
 	}
 }*/
-
 string token_to_T(token t) {  //根据token返回对应的单词
 	switch (t.code) {
 	case 1:return KT[t.value - 1];
@@ -48,10 +80,9 @@ string token_to_T(token t) {  //根据token返回对应的单词
 	case 3:return IT[t.value - 1];
 	case 4:return CH[t.value - 1];
 	case 5:return CT[t.value - 1];
-	default:return "error";
+	default:return "ERROR!";
 	}
 }
-
 int state_tran(int state, int num) {  //扫描token填写符号表的状态转换函数
 	switch (state) {
 	case 0: {
@@ -65,7 +96,7 @@ int state_tran(int state, int num) {  //扫描token填写符号表的状态转换函数
 			return 2;
 		}
 		else {
-			cout << "ERROR!" << endl;
+			COUTERROR(num);
 			return -1;
 		}
 	}
@@ -80,7 +111,7 @@ int state_tran(int state, int num) {  //扫描token填写符号表的状态转换函数
 			return 3;
 		}
 		else {
-			cout << "ERROR!" << endl;
+			COUTERROR(num);
 			return -1;
 		}
 	}
@@ -92,7 +123,7 @@ int state_tran(int state, int num) {  //扫描token填写符号表的状态转换函数
 			return 0;
 		}
 		else {
-			cout << "ERROR!" << endl;
+			COUTERROR(num);
 			return -1;
 		}
 	}
@@ -101,7 +132,7 @@ int state_tran(int state, int num) {  //扫描token填写符号表的状态转换函数
 			return 5;
 		}
 		else {
-			cout << "ERROR!" << endl;
+			COUTERROR(num);
 			return -1;
 		}
 	}
@@ -113,33 +144,32 @@ int state_tran(int state, int num) {  //扫描token填写符号表的状态转换函数
 			return 3;
 		}
 		else {
-			cout << "ERROR!" << endl;
+			COUTERROR(num);
 			return -1;
 		}
 	}
 	default:return -1;
 	}
 }
-
 void token_to_SYNBL(int tline,int sline) {  //token扫描器，填写符号表
 	token last_data_type;  //临时储存关键token信息
 	string last_symbol_name;   //记录上一个读取的标识符
 	int offset = 0;		//记录域宽
 	int state = 0;		//状态
 	int last_state = 0; //前一个状态
-	int lookup[6][6] = {1,0,2,3,0,6,
+	int lookup[6][6] = {1,0,2,1,0,6,
 						4,0,2,0,0,0,
 						0,5,0,0,0,0,
-						0,0,1,0,0,6,
+						0,0,3,0,0,6,
 						0,0,0,4,0,0,
 						0,0,0,0,5,0 }; //lookup[当前状态][前一状态]{操作编号}
 	int i = 0;  //token行数
 	while (i < tline) {   //逐一读取token
 		last_state = state;
-		state = state_tran(state,i);  //状态转换
+		state = state_tran(state, i);  //状态转换
 		switch (lookup[state][last_state]) {
-		case 0: {  
-			cout << "err!" << endl;
+		case 0: {
+			cout << "ERROR！" << endl;
 			break;
 		}
 		case 1: {  //无操作
@@ -148,22 +178,27 @@ void token_to_SYNBL(int tline,int sline) {  //token扫描器，填写符号表
 		case 2: {  //变量填表
 			for (int j = 0; j < sline; j++) {
 				if (last_symbol_name == SYNBL[j].name) {
-					if (token_to_T(last_data_type) == "int") {
-						SYNBL[j].type = 1;
-						SYNBL[j].addr = offset;
-						offset += 4;
+					if (SYNBL[j].type != 0) {
+						cout << "ERROR:" << SYNBL[j].name << "重定义" << endl;
 					}
-					else if (token_to_T(last_data_type) == "char") {
-						SYNBL[j].type = 2;
-						SYNBL[j].addr = offset;
-						offset += 1;
+					else {
+						if (token_to_T(last_data_type) == "int") {
+							SYNBL[j].type = 1;
+							SYNBL[j].addr = offset;
+							offset += 4;
+						}
+						else if (token_to_T(last_data_type) == "char") {
+							SYNBL[j].type = 2;
+							SYNBL[j].addr = offset;
+							offset += 1;
+						}
+						else if (token_to_T(last_data_type) == "float") {
+							SYNBL[j].type = 3;
+							SYNBL[j].addr = offset;
+							offset += 4;
+						}
+						SYNBL[j].cat = 1;//1是变量种类
 					}
-					else if (token_to_T(last_data_type) == "float") {
-						SYNBL[j].type = 3;
-						SYNBL[j].addr = offset;
-						offset += 4;
-					}
-					SYNBL[j].cat = 1;//1是变量种类
 				}
 			}
 			break;
@@ -171,16 +206,21 @@ void token_to_SYNBL(int tline,int sline) {  //token扫描器，填写符号表
 		case 3: {  //函数填表
 			for (int j = 0; j < sline; j++) {
 				if (last_symbol_name == SYNBL[j].name) {
-					if (token_to_T(last_data_type) == "int") {
-						SYNBL[j].type = 1;
+					if (SYNBL[j].type != 0) {
+						cout << "ERROR:" << SYNBL[j].name << "重定义" << endl;
 					}
-					else if (token_to_T(last_data_type) == "char") {
-						SYNBL[j].type = 2;
+					else {
+						if (token_to_T(last_data_type) == "int") {
+							SYNBL[j].type = 1;
+						}
+						else if (token_to_T(last_data_type) == "char") {
+							SYNBL[j].type = 2;
+						}
+						else if (token_to_T(last_data_type) == "float") {
+							SYNBL[j].type = 3;
+						}
+						SYNBL[j].cat = 2;//1是函数种类
 					}
-					else if (token_to_T(last_data_type) == "float") {
-						SYNBL[j].type = 3;
-					}
-					SYNBL[j].cat = 2;//1是函数种类
 				}
 			}
 			break;
@@ -193,25 +233,30 @@ void token_to_SYNBL(int tline,int sline) {  //token扫描器，填写符号表
 			last_symbol_name = token_to_T(token_list[i]);
 			break;
 		}
-		case 6: {
+		case 6: {//形参填表
 			for (int j = 0; j < sline; j++) {
 				if (last_symbol_name == SYNBL[j].name) {
-					if (token_to_T(last_data_type) == "int") {
-						SYNBL[j].type = 1;
-						SYNBL[j].addr = offset;
-						offset += 4;
+					if (SYNBL[j].type != 0) {
+						cout << "ERROR:" << SYNBL[j].name << "重定义" << endl;
 					}
-					else if (token_to_T(last_data_type) == "char") {
-						SYNBL[j].type = 2;
-						SYNBL[j].addr = offset;
-						offset += 1;
+					else {
+						if (token_to_T(last_data_type) == "int") {
+							SYNBL[j].type = 1;
+							SYNBL[j].addr = offset;
+							offset += 4;
+						}
+						else if (token_to_T(last_data_type) == "char") {
+							SYNBL[j].type = 2;
+							SYNBL[j].addr = offset;
+							offset += 1;
+						}
+						else if (token_to_T(last_data_type) == "float") {
+							SYNBL[j].type = 3;
+							SYNBL[j].addr = offset;
+							offset += 4;
+						}
+						SYNBL[j].cat = 3;//3是形参种类
 					}
-					else if (token_to_T(last_data_type) == "float") {
-						SYNBL[j].type = 3;
-						SYNBL[j].addr = offset;
-						offset += 4;
-					}
-					SYNBL[j].cat = 3;//3是形参种类
 				}
 			}
 			break;
@@ -228,41 +273,25 @@ void token_to_SYNBL(int tline,int sline) {  //token扫描器，填写符号表
 	}
 }
 
-struct four {
-	string op;
-	string arg1;
-	string arg2;
-	string result;
-};
-
 four four_list[100];
 int four_list_num = 0;
+
 string SEM[100];
 int top = 0;
 
-void FUNC();			//主函数体
-void PARA();			//形参定义
-void EXTRA_PARA();		//额外形参
-void STATEMENT_LIST();	//语句列表
-void STATEMENT_LIST1();	//语句列表'
-void STATEMENT();		//语句
-void DEF_STATEMENT();	//定义语句
-void DATA_TYPE();		//数据类型
-void EXTRA_ID();		//额外标识符
-void ASSI_STATEMENT();	//赋值语句
-void ASSI_CONTENT();	//赋值内容
-void EXPRESSION();		//表达式
-void EXPRESSION1();		//表达式'
-void T();				//表达式衍生非终结符T
-void T1();				//表达式衍生非终结符T1
-void F();				//表达式衍生非终结符F
-//void ID();				//标识符
-//void CONSTANT();		//常数
-void PUSH(string str);			//入语义栈
-void ASSI();			//生成赋值四元式
-void GEQ(string str);				//生成表达式四元式
-
 int token_num;
+
+bool CHECK_DEF(string str) {
+	for (int i = 0; i < SYNBL_line1; i++) {
+		if (str == SYNBL[i].name) {
+			if (SYNBL[i].type == 0) {
+				return true;
+			}
+			else return false;
+		}
+	}
+}
+
 void FUNC() {			//主函数体
 	//cout << "FUNC()" << endl;
 	if (Isdata_type(token_to_T(token_list[token_num]))) {
@@ -278,19 +307,19 @@ void FUNC() {			//主函数体
 						token_num++;
 						STATEMENT_LIST();
 						if (token_to_T(token_list[token_num]) == "}") {
-							cout << "FINISH!" << endl;
+							//cout << "FINISH!" << endl;
 						}
-						else cout << "ERROR!" << endl;
+						else cout << "ERROR: 缺少\"}\""<<endl;
 					}
-					else cout << "ERROR!" << endl;
+					else COUTERROR(token_num);
 				}
-				else cout << "ERROR!" << endl;
+				else COUTERROR(token_num);
 			}
-			else cout << "ERROR!" << endl;
+			else COUTERROR(token_num);
 		}
-		else cout << "ERROR!" << endl;
+		else COUTERROR(token_num);
 	}
-	else cout << "ERROR!" << endl;
+	else COUTERROR(token_num);
 }
 
 void PARA() {			//形参定义
@@ -300,16 +329,31 @@ void PARA() {			//形参定义
 			token_num++;
 			EXTRA_PARA();
 		}
-		else cout << "ERROR!" << endl;
+		else COUTERROR(token_num);
 	}
-	else cout << "ERROR!" << endl;
+	else if (token_to_T(token_list[token_num]) == ")") {
+		return;
+	}
+	else COUTERROR(token_num);
 }
 
 void EXTRA_PARA() {		//额外形参
 	if (token_to_T(token_list[token_num]) == ",") {
 		token_num++;
-		PARA();
+		if (Isdata_type(token_to_T(token_list[token_num]))) {
+			token_num++;
+			if (token_list[token_num].code == 3) {
+				token_num++;
+				EXTRA_PARA();
+			}
+			else COUTERROR(token_num);
+		}
+		else COUTERROR(token_num);
 	}
+	else if (token_to_T(token_list[token_num]) == ")") {
+		return;
+	}
+	else COUTERROR(token_num);
 }
 
 void STATEMENT_LIST() {	//语句列表
@@ -323,6 +367,10 @@ void STATEMENT_LIST1(){//语句列表'
 	if (Isdata_type(token_to_T(token_list[token_num])) || token_list[token_num].code == 3) {
 		STATEMENT_LIST();
 	}
+	else if (token_to_T(token_list[token_num]) == "}") {
+		return;
+	}
+	else COUTERROR(token_num);
 }
 
 void STATEMENT() {		//语句
@@ -332,16 +380,16 @@ void STATEMENT() {		//语句
 		if (token_to_T(token_list[token_num]) == ";") {
 			token_num++;
 		}
-		else cout << "ERROR!" << endl;
+		else COUTERROR(token_num);
 	}
 	else if (token_list[token_num].code == 3) {
 		ASSI_STATEMENT();
 		if (token_to_T(token_list[token_num]) == ";") {
 			token_num++;
 		}
-		else cout << "ERROR!" << endl;
+		else COUTERROR(token_num);
 	}
-	else cout << "ERROR!" << endl;
+	else COUTERROR(token_num);
 }
 
 void DEF_STATEMENT() {	//定义语句
@@ -352,17 +400,10 @@ void DEF_STATEMENT() {	//定义语句
 			token_num++;
 			EXTRA_ID();
 		}
-		else cout << "ERROR!" << endl;
+		else COUTERROR(token_num);
 	}
-	else cout << "ERROR!" << endl;
+	else COUTERROR(token_num);
 }
-
-/*void DATA_TYPE() {		//数据类型
-	if (Isdata_type(token_to_T(token_list[token_num]))) {
-		token_num++;
-	}
-	else cout << "ERROR!" << endl;
-}*/
 
 void EXTRA_ID() {		//额外标识符
 	//cout << "EXTRA_ID()" << endl;
@@ -372,16 +413,20 @@ void EXTRA_ID() {		//额外标识符
 			token_num++;
 			EXTRA_ID();
 		}
-		else cout << "ERROR!" << endl;
+		else COUTERROR(token_num);
 	}
-	/*else {
-		token_num++;
-	}*/
+	else if (token_to_T(token_list[token_num]) == ";") {
+		return;
+	}
+	else COUTERROR(token_num);
 }
 
 void ASSI_STATEMENT() {	//赋值语句
 	//cout << "ASSI_STATEMENT()" << endl;
 	if (token_list[token_num].code == 3) {
+		if (CHECK_DEF(token_to_T(token_list[token_num]))) {
+			cout << "ERROR: " << token_to_T(token_list[token_num]) << "未定义！" << endl;
+		}
 		PUSH(token_to_T(token_list[token_num]));
 		token_num++;
 		if (token_to_T(token_list[token_num]) == "=") {
@@ -389,9 +434,9 @@ void ASSI_STATEMENT() {	//赋值语句
 			ASSI_CONTENT();
 			ASSI();
 		}
-		else cout << "ERROR!" << endl;
+		else COUTERROR(token_num);
 	}
-	else cout << "ERROR!" << endl;
+	else COUTERROR(token_num);
 }
 
 void ASSI_CONTENT() {	//赋值内容
@@ -403,7 +448,7 @@ void ASSI_CONTENT() {	//赋值内容
 	else if (token_to_T(token_list[token_num]) == "(" || token_list[token_num].code == 3 || token_list[token_num].code == 5) {
 		EXPRESSION();
 	}
-	else cout << "ERROR!" << endl;
+	else COUTERROR(token_num);
 }
 
 void EXPRESSION() {		//表达式
@@ -426,9 +471,10 @@ void EXPRESSION1() {	//表达式'
 		GEQ("-");
 		EXPRESSION1();
 	}
-	/*else {
-		token_num++;
-	}*/
+	else if (token_to_T(token_list[token_num]) == ";"|| token_to_T(token_list[token_num]) == ")") {
+		return;
+	}
+	else COUTERROR(token_num);
 }
 
 void T() {				//表达式衍生非终结符T
@@ -451,9 +497,10 @@ void T1() {				//表达式衍生非终结符T1
 		GEQ("/");
 		T1();
 	}
-	/*else {
-		token_num++;
-	}*/
+	else if (token_to_T(token_list[token_num]) == "+" || token_to_T(token_list[token_num]) == "-" || token_to_T(token_list[token_num]) == ")" || token_to_T(token_list[token_num]) == ";") {
+		return;
+	}
+	else COUTERROR(token_num);
 }
 
 void F() {				//表达式衍生非终结符F
@@ -464,31 +511,25 @@ void F() {				//表达式衍生非终结符F
 		if (token_to_T(token_list[token_num]) == ")") {
 			token_num++;
 		}
-		else cout << "ERROR!" << endl;
+		else COUTERROR(token_num);
 	}
-	else if (token_list[token_num].code == 3|| token_list[token_num].code == 5) {
+	else if (token_list[token_num].code == 3 ) {
+		if (CHECK_DEF(token_to_T(token_list[token_num]))) {
+			cout << "ERROR: " << token_to_T(token_list[token_num]) << "未定义！" << endl;
+		}
 		PUSH(token_to_T(token_list[token_num]));
 		token_num++;
 	}
-	else cout << "ERROR!" << endl;
+	else if (token_list[token_num].code == 5) {
+		PUSH(token_to_T(token_list[token_num]));
+		token_num++;
+	}
+	else COUTERROR(token_num);
 }
 
-/*void ID() {				//标识符
-	if (token_list[token_num].code == 3) {
-		token_num++;
-	}
-	else cout << "ERROR!" << endl;
-}*/
-
-/*void CONSTANT() {		//常数
-	if (token_list[token_num].code == 5) {
-		token_num++;
-	}
-	else cout << "ERROR!" << endl;
-}*/
-
 void PUSH(string str) {			//入语义栈
-	cout << "PUSH(" << str << ")" << endl;
+	//cout << "PUSH(" << str << ")" << endl;
+
 	SEM[top] = str;
 	top++;
 }
@@ -503,7 +544,7 @@ string NEWT() {
 	return t;
 }
 void ASSI() {			//生成赋值四元式
-	cout << "ASSI()" << endl;
+	//cout << "ASSI()" << endl;
 	four_list[four_list_num].op = "=";
 	four_list[four_list_num].arg1 = POP();
 	four_list[four_list_num].arg2 = "_";
@@ -511,7 +552,7 @@ void ASSI() {			//生成赋值四元式
 	four_list_num++;
 }
 void GEQ(string str) {				//生成表达式四元式
-	cout << "GEQ(" << str << ")" << endl;
+	//cout << "GEQ(" << str << ")" << endl;
 	string t = NEWT();
 	four_list[four_list_num].op = str;
 	four_list[four_list_num].arg2 = POP();
@@ -521,11 +562,10 @@ void GEQ(string str) {				//生成表达式四元式
 	four_list_num++;
 }
 
-int main() {
+void yuyifenxi() {
 	char out;
 	ifstream symbolfile1;   //打开符号表文件
 	symbolfile1.open("测试符号表（词法）.txt");
-	int SYNBL_line1 = 0;
 	while (symbolfile1.peek() != EOF) {//从文件中读入符号表信息
 		symbolfile1 >> SYNBL[SYNBL_line1].name >> SYNBL[SYNBL_line1].type >> SYNBL[SYNBL_line1].cat >> SYNBL[SYNBL_line1].addr;
 		SYNBL_line1++;
@@ -538,10 +578,10 @@ int main() {
 	}*/
 
 	ifstream tokenfile;  //打开token序列文件
-	tokenfile.open("测试token.txt");
+	tokenfile.open("测试tok.txt");
 	int token_line = 0;
 	while (tokenfile.peek() != EOF) {  //从文件中读入token序列信息
-		tokenfile >> token_list[token_line].code >> token_list[token_line].value;
+		tokenfile >> token_list[token_line].code >> token_list[token_line].value >> token_list[token_line].line;
 		token_line++;
 		tokenfile.get(out);
 	}
@@ -628,7 +668,7 @@ int main() {
 	}
 	cout << "type:1(int),2(char)，3(float)" << endl << "cat:1(变量),2(函数)" << endl;*/
 	ofstream symbolfile2;   //打开符号表文件
-	symbolfile2.open("测试符号表（语义）.txt");
+	symbolfile2.open("符号表_优化前.txt");
 	int i = 0;
 	while (i< SYNBL_line1) {//从文件中读入符号表信息
 		symbolfile2 << SYNBL[i].name << "	" << SYNBL[i].type << "	" << SYNBL[i].cat << "	" << SYNBL[i].addr << endl;
@@ -639,15 +679,13 @@ int main() {
 	/*for (int i = 0; i < four_list_num; i++) {
 		cout << four_list[i].op << "	" << four_list[i].arg1 << "	" << four_list[i].arg2 << "	" << four_list[i].result << endl;
 	}*/
-	ofstream four_file;   //打开符号表文件
-	four_file.open("测试中间代码.txt");
+	ofstream four_file;   //打开中间代码文件
+	four_file.open("中间代码_优化前.txt");
 	i = 0;
 	while (i < four_list_num) {//从文件中读入符号表信息
 		four_file << four_list[i].op << "	" << four_list[i].arg1 << "	" << four_list[i].arg2 << "	" << four_list[i].result << endl;
 		i++;
 	}
 	four_file.close();
-
-	system("pause");
-	return 0;
+	//system("pause");
 }

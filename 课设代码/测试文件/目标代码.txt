@@ -1,0 +1,8 @@
+LD    R0,a
+ADD    R0,3
+ADD    R0,1
+LD    R1,b
+SUB    R1,a
+DIV    R0,t3
+ST    R0,c
+ST    R1,t3

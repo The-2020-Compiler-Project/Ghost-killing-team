@@ -5,6 +5,16 @@ using namespace std;
 char ch[] = { 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
 			  'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','\'' };
 
+struct node									//DAG节点
+{
+	int isnum = 0;							//是否为数字
+	string operation = "_";					//运算符号
+	float MainSymbolnum = -1;				//数字标记符
+	string Symbol[10];						//标记符，Simbol[0]为主标记符
+	int s = 0;								//标记符数量
+	node* LeftChild = NULL;					//左孩子
+	node* RightChild = NULL;				//右孩子
+};
 string quaternion[100][4];	//四元式数组
 int p = 0;					//四元式数组指针
 node dag[100];				//DAG图节点数组
@@ -116,36 +126,45 @@ void read_equal(int d)
 					or1_3 = 3;
 					break;
 				}
-				if (quaternion[d][3] == dag[i].Symbol[j])				//找到了一个标记符与四元式第4位相等
-				{
-					havehad = 1;
-					addr = i;
-					or1_3 = 1;
-					break;
-				}
 			}
 			if (havehad == 1)											//找到了便跳出
 				break;
-			else if (i == q - 1)										//如果目前不存在这个标记
+		}
+		if (havehad == 0)
+		{
+			for (int i = 0; i < q; i++)					//在DAG节点中搜索
 			{
-				int comparenum;
-				comparenum = compare(quaternion[d][1], quaternion[d][3]);
-				if (comparenum < 2)										//若四元式第4位标记权重大
+				for (int j = 0; j < dag[i].s; j++)		//在一个节点中的所有标记符中搜索
 				{
-					createnode(q, quaternion[d][3]);					//创建新结点并使其标记符同时含有四元式第2位与第4位
-					dag[q].Symbol[dag[q].s] = quaternion[d][1];
-					dag[q].s += 1;
-					q++;
-					break;
+					if (quaternion[d][3] == dag[i].Symbol[j])			//找到了一个标记符与四元式第4位相等
+					{
+						havehad = 1;
+						addr = i;
+						or1_3 = 1;
+						break;
+					}
 				}
-				else														//第4位权重小于等于第2位
-				{
-					createnode(q, quaternion[d][1]);
-					dag[q].Symbol[dag[q].s] = quaternion[d][3];
-					dag[q].s += 1;
-					q++;
+				if (havehad == 1)											//找到了便跳出
 					break;
-				}
+			}
+		}
+		if (havehad == 0)										//如果目前不存在这个标记
+		{
+			int comparenum;
+			comparenum = compare(quaternion[d][1], quaternion[d][3]);
+			if (comparenum < 2)										//若四元式第4位标记权重大
+			{
+				createnode(q, quaternion[d][3]);					//创建新结点并使其标记符同时含有四元式第2位与第4位
+				dag[q].Symbol[dag[q].s] = quaternion[d][1];
+				dag[q].s += 1;
+				q++;
+			}
+			else														//第4位权重小于等于第2位
+			{
+				createnode(q, quaternion[d][1]);
+				dag[q].Symbol[dag[q].s] = quaternion[d][3];
+				dag[q].s += 1;
+				q++;
 			}
 		}
 	}
@@ -167,7 +186,7 @@ void read_equal(int d)
 	}
 }
 
-//在所有节点中寻找是否有第d位四元式中位置为position的元素，若没有则创建一个，并返回该节点指针
+//在所有节点中寻找是否有第d行四元式中位置为position的元素，若没有则创建一个，并返回该节点指针
 node* findelement(int d,int position)
 {
 	node* ex = NULL;
@@ -394,5 +413,13 @@ void youhua()
 		}
 	}
 	coutquaternion();
+	/*for (int i = 0; i < q; i++)
+	{
+		for (int j = 0; j < dag[i].s; j++)
+		{
+			cout << dag[i].Symbol[j] << "	";
+		}
+		cout << endl;
+	}*/
 	savetable();
 }
