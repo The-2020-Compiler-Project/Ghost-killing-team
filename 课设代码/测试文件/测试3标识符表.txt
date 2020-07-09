@@ -1,4 +1,7 @@
-main
-a
-b
-c
+func
+A1
+B1
+x
+y
+number
+TAT

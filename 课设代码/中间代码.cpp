@@ -63,6 +63,7 @@ bool Isdata_type(string word) {  //判断是否为数据类型
 }
 void COUTERROR(int num) {	//输出错误信息
 	cout << "ERROR: \"" << token_to_T(token_list[num]) << "\"		行数: " << token_list[num].line << endl; 
+	system("pause");
 }
 
 /*string tokennum_to_T(int num){   //根据token序号返回token内容
@@ -309,7 +310,10 @@ void FUNC() {			//主函数体
 						if (token_to_T(token_list[token_num]) == "}") {
 							//cout << "FINISH!" << endl;
 						}
-						else cout << "ERROR: 缺少\"}\""<<endl;
+						else {
+							cout << "ERROR: 缺少\"}\"" << endl;
+							system("pause");
+						}
 					}
 					else COUTERROR(token_num);
 				}

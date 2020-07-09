@@ -1,5 +1,11 @@
-int main() {
-	int a, b, c;
-	b = a + 3;
-	c = (b + 1) / (b - a);
+int func(int A1, float B1) {
+	int x, y;
+	x = 3;
+	y = A1 - x;
+	x = x + A1 * (y / A1 - y * (x + 6));
+	float number;
+	number = 13.26;
+	B1 = number - 2.39;
+	char TAT;
+	TAT = 'a';
 }
